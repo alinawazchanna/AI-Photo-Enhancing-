@@ -1,0 +1,37 @@
+name: Run Telegram Bot
+
+on:
+  workflow_dispatch:        # Manually "Run workflow" button se bhi start kar sakte hain
+  schedule:
+    # Har 5 ghante 40 minute (340 min) me naya run shuru hota hai,
+    # taaki purana run khatam hone se pehle hi agla shuru ho jaye (near-continuous).
+    - cron: "0 */5 * * *"
+  push:
+    branches: [ main ]      # Code push karte hi bot turant (re)start ho jayega
+
+concurrency:
+  group: telegram-bot
+  cancel-in-progress: false   # Purana run khud khatam hone dein, overlap allowed hai
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350       # GitHub ki 360-min hard limit se thoda pehle rok dete hain
+
+    steps:
+      - name: Repo checkout karo
+        uses: actions/checkout@v4
+
+      - name: Python setup karo
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Dependencies install karo
+        run: pip install -r requirements.txt
+
+      - name: Bot chalao
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          MAX_RUN_MINUTES: "340"
+        run: python bot.py
